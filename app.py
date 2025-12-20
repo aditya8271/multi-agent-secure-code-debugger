@@ -66,7 +66,7 @@ st.markdown("""
     
     /* Card styling */
     .info-card {
-        background: Green;
+        background: light green;
         padding: 25px;
         border-radius: 12px;
         box-shadow: 0 4px 6px rgba(0,153,76);
