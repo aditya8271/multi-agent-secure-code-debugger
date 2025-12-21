@@ -1,3 +1,5 @@
+# app.py
+
 import streamlit as st
 import sys
 import os
@@ -9,6 +11,9 @@ genai.configure(api_key=API_KEY)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
+from agents.scanner import scan_code
+from agents.fixer import fix_code
+from agents.validator import validate_fix
 
 # Page config
 st.set_page_config(
