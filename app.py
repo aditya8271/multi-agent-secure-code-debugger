@@ -2,23 +2,13 @@ import streamlit as st
 import sys
 import os
 import google.generativeai as genai
-from dotenv import load_dotenv  # ← ADD THIS
 
-# ✅ Load API key from .env file
-load_dotenv()  # ← ADD THIS
-API_KEY = os.getenv("GOOGLE_API_KEY")  # ← CHANGE THIS
-
-if not API_KEY:
-    st.error("🔑 API Key not found! Please create .env file")
-    st.stop()
-
+# ✅ API KEY CONFIGURATION
+API_KEY = "AIzaSyAy8wkvMwsRQy3_Ks2ZDnQwjTgvu9Tjcug"
 genai.configure(api_key=API_KEY)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from agents.scanner import scan_code
-from agents.fixer import fix_code
-from agents.validator import validate_fix
 
 # Page config
 st.set_page_config(
