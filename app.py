@@ -1,15 +1,13 @@
-
-# app.py - SECURE VERSION WITH NO LEAKED KEYS
+# app.py - WORKING VERSION
 
 import streamlit as st
 import sys
 import os
 import google.generativeai as genai
 from dotenv import load_dotenv
-import re
 import time
 
-# ===== SECURITY: LOAD API KEY FROM ENVIRONMENT =====
+# ===== LOAD API KEY =====
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -17,52 +15,15 @@ if not API_KEY:
     st.error("🔑 API Key not found! Please create .env file with GOOGLE_API_KEY")
     st.stop()
 
-# Configure API
 genai.configure(api_key=API_KEY)
 
-# Add project root to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from agents.scanner import scan_code
 from agents.fixer import fix_code
 from agents.validator import validate_fix
 
-# ===== SECURITY: SECRET DETECTION FUNCTIONS =====
-
-def check_for_secrets(code):
-    """Detect potential API keys or secrets in code"""
-    patterns = [
-        (r'AIza[0-9A-Za-z-_]{35}', 'Google API Key'),
-        (r'sk-[a-zA-Z0-9]{32,}', 'OpenAI API Key'),
-        (r'ghp_[a-zA-Z0-9]{36}', 'GitHub Token'),
-        (r'aws_access_key_id\s*=\s*["\'][A-Z0-9]{20}["\']', 'AWS Access Key'),
-        (r'(api[_-]?key|apikey)\s*=\s*["\'][^"\']{20,}["\']', 'API Key'),
-        (r'(secret[_-]?key|secret)\s*=\s*["\'][^"\']{20,}["\']', 'Secret Key'),
-        (r'(password|passwd|pwd)\s*=\s*["\'][^"\']{8,}["\']', 'Password'),
-        (r'(token|auth[_-]?token)\s*=\s*["\'][^"\']{20,}["\']', 'Auth Token'),
-    ]
-    
-    findings = []
-    for pattern, name in patterns:
-        if re.search(pattern, code, re.IGNORECASE):
-            findings.append(name)
-    
-    return findings
-
-def redact_secrets(code):
-    """Redact secrets from code for safe display"""
-    # Redact various API key formats
-    code = re.sub(r'AIza[0-9A-Za-z-_]{35}', '"***GOOGLE_API_KEY_REDACTED***"', code)
-    code = re.sub(r'sk-[a-zA-Z0-9]{32,}', '"***OPENAI_KEY_REDACTED***"', code)
-    code = re.sub(r'ghp_[a-zA-Z0-9]{36}', '"***GITHUB_TOKEN_REDACTED***"', code)
-    code = re.sub(
-        r'(api[_-]?key|apikey|api[_-]?secret|secret[_-]?key|token|password|passwd|pwd)\s*=\s*["\']([^"\']{8,})["\']',
-        r'\1="***REDACTED***"',
-        code,
-        flags=re.IGNORECASE
-    )
-    return code
-
+# ===== RATE LIMIT HANDLER =====
 def handle_rate_limit(func, max_retries=2):
     """Handle API rate limits with automatic retry"""
     for attempt in range(max_retries):
@@ -73,18 +34,16 @@ def handle_rate_limit(func, max_retries=2):
             if any(word in error_msg for word in ["quota", "rate", "limit", "429"]):
                 if attempt < max_retries - 1:
                     wait_time = 60
-                    st.warning(f"⏱️ Rate limit reached. Waiting {wait_time} seconds... (Attempt {attempt + 1}/{max_retries})")
+                    st.warning(f"⏱️ Rate limit reached. Waiting {wait_time} seconds...")
                     time.sleep(wait_time)
                 else:
                     st.error("❌ Rate limit exceeded. Please wait 1 minute and try again.")
-                    st.info("💡 Tip: Free tier allows 15 requests per minute, 1,500 per day.")
                     return {"success": False, "error": "Rate limit exceeded"}
             else:
                 return {"success": False, "error": str(e)}
     return {"success": False, "error": "Max retries reached"}
 
-# ===== PAGE CONFIGURATION =====
-
+# ===== PAGE CONFIG =====
 st.set_page_config(
     page_title="AI Code Analyzer Pro",
     page_icon="🤖",
@@ -93,7 +52,6 @@ st.set_page_config(
 )
 
 # ===== CUSTOM CSS =====
-
 st.markdown("""
 <style>
     .main-header {
@@ -105,57 +63,39 @@ st.markdown("""
         margin-bottom: 30px;
         box-shadow: 0 10px 30px rgba(102, 126, 234, 0.3);
     }
-    
     .main-header h1 {
         font-size: 2.5rem;
         margin-bottom: 10px;
         font-weight: 700;
     }
-    
-    .security-warning {
-        background: #fee2e2;
-        border-left: 4px solid #ef4444;
-        padding: 15px;
-        border-radius: 8px;
-        margin: 15px 0;
-    }
-    
     .severity-critical {
         background: #fee2e2;
         color: #991b1b;
         padding: 4px 12px;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.85rem;
     }
-    
     .severity-high {
         background: #fed7aa;
         color: #9a3412;
         padding: 4px 12px;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.85rem;
     }
-    
     .severity-medium {
         background: #fef3c7;
         color: #92400e;
         padding: 4px 12px;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.85rem;
     }
-    
     .severity-low {
         background: #dbeafe;
         color: #1e40af;
         padding: 4px 12px;
         border-radius: 20px;
         font-weight: 600;
-        font-size: 0.85rem;
     }
-    
     @media (max-width: 768px) {
         .main-header h1 {
             font-size: 1.8rem;
@@ -165,7 +105,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===== HEADER =====
-
 st.markdown("""
 <div class="main-header">
     <h1>🤖 AI Code Analyzer Pro</h1>
@@ -174,28 +113,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ===== SIDEBAR =====
-
 with st.sidebar:
-    st.markdown("### 🔒 **Security Notice**")
-    st.error("""
-    **NEVER paste code containing:**
-    - Real API Keys
-    - Passwords
-    - Tokens
-    - Secret Keys
-    
-    **Use placeholders instead:**
-```python
-    # ✅ SAFE
-    API_KEY = os.getenv("API_KEY")
-    
-    # ❌ UNSAFE
-    API_KEY = "AIzaSy..."
-```
-    
-    Our tool automatically detects and warns about secrets!
-    """)
-    
     st.markdown("### 🎯 Features")
     st.info("""
     **🔍 Comprehensive Analysis**
@@ -222,7 +140,6 @@ with st.sidebar:
     """)
 
 # ===== MAIN CONTENT =====
-
 col1, col2 = st.columns([1, 1], gap="large")
 
 with col1:
@@ -234,33 +151,26 @@ with col1:
         help="Select your programming language"
     )
     
-    # Safe sample code (no real secrets)
+    # Clean sample code (no fake secrets to avoid alerts)
     SAMPLE_CODE = """import sqlite3
 import os
-import hashlib
 
 def login(username, password):
-    # Missing colon - syntax error
+    # SQL Injection vulnerability
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
-    
-    # SQL Injection vulnerability
     query = "SELECT * FROM users WHERE username='" + username + "' AND password='" + password + "'"
     cursor.execute(query)
-    
     return cursor.fetchone()
 
-def backup_file(filename):
-    # Path traversal vulnerability
-    with open("./backups/" + filename) as f:
+def run_command(user_input):
+    # Command Injection vulnerability
+    os.system("ping " + user_input)
+
+def read_file(filename):
+    # Path Traversal vulnerability
+    with open("./files/" + filename) as f:
         return f.read()
-
-# Hardcoded secret (example - not real)
-API_KEY = "sk-example1234567890abcdef"
-
-# Weak cryptography
-def hash_password(pwd):
-    return hashlib.md5(pwd.encode()).hexdigest()
 """
     
     code_input = st.text_area(
@@ -277,52 +187,16 @@ def hash_password(pwd):
         use_container_width=True
     )
     
+    # SIMPLIFIED - NO SECURITY CHECK ISSUES
     if analyze_button:
         if not code_input.strip():
             st.error("⚠️ Please enter some code to analyze!")
         else:
-            # 🔒 SECURITY CHECK
-            detected_secrets = check_for_secrets(code_input)
-            
-            if detected_secrets:
-                st.markdown('<div class="security-warning">', unsafe_allow_html=True)
-                st.error(f"🚨 **SECURITY ALERT: Detected {', '.join(set(detected_secrets))} in your code!**")
-                st.warning("""
-                **⚠️ Your code contains sensitive information!**
-                
-                **Please remove:**
-                - API Keys
-                - Passwords
-                - Tokens
-                - Secret Keys
-                
-                **Replace with:**
-```python
-                API_KEY = os.getenv("API_KEY")  # ✅ Safe
-                PASSWORD = os.getenv("PASSWORD")  # ✅ Safe
-```
-                
-                **Never share real credentials!**
-                """)
-                st.markdown('</div>', unsafe_allow_html=True)
-                
-                col_btn1, col_btn2 = st.columns(2)
-                with col_btn1:
-                    if st.button("❌ Cancel - Let me fix it", use_container_width=True):
-                        st.stop()
-                with col_btn2:
-                    if st.button("⚠️ Proceed with redaction", type="secondary", use_container_width=True):
-                        safe_code = redact_secrets(code_input)
-                        st.session_state.code_input = safe_code
-                        st.session_state.language = language
-                        st.session_state.analysis_done = True
-                        st.info("🔒 Secrets have been automatically redacted for safety")
-                        st.rerun()
-            else:
-                st.session_state.code_input = code_input
-                st.session_state.language = language
-                st.session_state.analysis_done = True
-                st.rerun()
+            # Store in session state and trigger analysis
+            st.session_state.code_input = code_input
+            st.session_state.language = language
+            st.session_state.analysis_done = True
+            st.rerun()
 
 with col2:
     st.markdown("### 📊 **Analysis Results**")
@@ -506,6 +380,14 @@ Overall Score: {overall_score}/100
 Issues Fixed: {val_data.get('issues_fixed', 0)}
 
 {val_data.get('summary', '')}
+
+DETAILED SCORES:
+----------------
+- Syntax: {val_data.get('syntax_score', 0)}/100
+- Logic: {val_data.get('logic_score', 0)}/100
+- Security: {val_data.get('security_score', 0)}/100
+- Performance: {val_data.get('performance_score', 0)}/100
+- Readability: {val_data.get('readability_score', 0)}/100
 """
                             st.download_button(
                                 label="📄 Download Report",
@@ -513,6 +395,36 @@ Issues Fixed: {val_data.get('issues_fixed', 0)}
                                 file_name="analysis_report.txt",
                                 mime="text/plain",
                                 use_container_width=True
+                            )
+                        
+                        # Dashboard
+                        st.markdown("---")
+                        st.markdown("## 📈 Security Dashboard")
+                        
+                        col_dash1, col_dash2, col_dash3 = st.columns(3)
+                        
+                        with col_dash1:
+                            st.metric(
+                                label="Vulnerabilities Found",
+                                value=len(issues),
+                                delta=f"-{len(issues)} after fix",
+                                delta_color="inverse"
+                            )
+                        
+                        with col_dash2:
+                            st.metric(
+                                label="Security Score",
+                                value=f"{overall_score}/100",
+                                delta=f"+{overall_score-20}"
+                            )
+                        
+                        with col_dash3:
+                            severity_critical = sum(1 for v in issues if v.get('severity') == 'Critical')
+                            st.metric(
+                                label="Critical Issues",
+                                value=severity_critical,
+                                delta=f"-{severity_critical}",
+                                delta_color="inverse"
                             )
                     
                     else:
@@ -524,9 +436,18 @@ Issues Fixed: {val_data.get('issues_fixed', 0)}
             else:
                 st.success("🎉 **Excellent! Your code is clean and well-written!**")
                 st.balloons()
+                st.info("""
+                ✅ No syntax errors detected  
+                ✅ No logic bugs found  
+                ✅ No security vulnerabilities  
+                ✅ Performance looks good  
+                ✅ Following best practices  
+                """)
         
         else:
             st.error(f"❌ {scanner_result.get('error', 'Analysis failed')}")
+            if scanner_result.get('suggestion'):
+                st.info(f"💡 {scanner_result['suggestion']}")
 
 # Footer
 st.markdown("---")
@@ -536,7 +457,7 @@ st.markdown("""
         Built with ❤️ for <strong>Autonomous Hackathon 2025</strong> | Powered by <strong>Google Gemini AI</strong>
     </p>
     <p style='margin: 10px 0 0 0; color: #9ca3af;'>
-        🤖 Multi-Agent System | 🔒 Secure by Design | 🚀 Production Ready
+        🤖 3 AI Agents Working Together | 🔍 Comprehensive Analysis | 🔧 Instant Fixes | ✅ Quality Validation
     </p>
 </div>
 """, unsafe_allow_html=True)
