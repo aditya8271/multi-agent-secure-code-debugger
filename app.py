@@ -6,7 +6,7 @@ import os
 import google.generativeai as genai
 
 # ✅ API KEY CONFIGURATION
-API_KEY = "AIzaSyDt8Z1EftBYaEW7667E1m-jqcIO4TgiqIk"
+API_KEY = "AIzaSyAVZh830Tj-fn7b-pWvWuPppQh-IDJ2x3Q"
 genai.configure(api_key=API_KEY)
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
