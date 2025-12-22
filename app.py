@@ -66,14 +66,15 @@ st.markdown("""
     
     /* Card styling */
     .info-card {
-        background: white;
+        /* light green background for Features (Comprehensive Analysis) */
+        background: linear-gradient(0,153,76,233);
         padding: 25px;
         border-radius: 12px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 6px rgba(0,153,76);
         margin-bottom: 20px;
-        border-left: 4px solid #6366f1;
+        border-left: 4px solid #10b981;
+        color: #065f46; /* darker green text for contrast */
     }
-    
     /* Issue severity badges */
     .severity-critical {
         background: #fee2e2;
